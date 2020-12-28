@@ -4,7 +4,6 @@ import statistics
 import time
 import config
 import requests
-from ta.volume import ChaikinMoneyFlowIndicator as cmfi
 from datetime import datetime, timedelta
 from pytz import timezone
 
@@ -130,9 +129,8 @@ def run():
         if clock.is_open and not bought_today:
             if sold_today:
                 time_until_close = clock.next_close - clock.timestamp
-                print('Waiting to buy...')
                 if time_until_close.seconds <= 120:
-                    print('Buying positions...')
+                    print('Buying positions ...')
                     portfolio_cash = float(api.get_account().cash)
                     ratings = get_all_ratings(max_stocks)
                     shares_to_buy = get_shares_to_buy(ratings, portfolio_cash)
@@ -146,12 +144,17 @@ def run():
                         )
                     print('Positions bought.')
                     bought_today = True
+                elif tick_count % 5 == 0:
+                    print('Waiting to buy...')
             else:
-                time_after_open = clock.next_open - clock.timestamp
-                print('Waiting to sell...')
-                if time_after_open.seconds >= 60:
+                time_after_open = clock.timestamp - \
+                    (clock.next_open-timedelta(days=1))
+
+                if time_after_open.seconds >= 120:
                     print('Liquidating positions.')
                     api.close_all_positions()
+                elif tick_count % 5 == 0:
+                    print('Waiting to sell ...')
                 sold_today = True
         else:
             bought_today = False
@@ -179,9 +182,7 @@ def log_shares(shares, ratings):
 
 
 if __name__ == '__main__':
-    ratings = get_all_ratings(float(api.get_account().cash) // stock_divisor)
-    shares = get_shares_to_buy(ratings, float(api.get_account().cash))
-    log_shares(shares, ratings)
+    run()
 
 # uncomment to use sentiment
 # try:
@@ -194,3 +195,13 @@ if __name__ == '__main__':
 #         continue
 # except:
 #     pass
+
+# test what algo would buy
+# ratings = get_all_ratings(float(api.get_account().cash) // stock_divisor)
+# shares = get_shares_to_buy(ratings, float(api.get_account().cash))
+# log_shares(shares, ratings)
+
+# check buy/sell times
+# clock = api.get_clock()
+# time_till_close = clock.next_close - clock.timestamp
+# time_since_open = clock.timestamp - (clock.next_open - timedelta(days=1))
