@@ -9,7 +9,7 @@ from pytz import timezone
 
 api = tradeapi.REST(config.KEY_ID, config.SECRET_KEY, config.URL)
 
-stock_divisor = 15
+stock_divisor = 5
 max_stock_price = 13
 min_stock_price = 2
 min_prcnt_chng = 0.035
@@ -157,11 +157,12 @@ def run():
                     print('Waiting to sell ...')
                 sold_today = True
         else:
-            bought_today = False
-            sold_today = False
-            if tick_count % 5 == 0:
-                print("Waiting for market open ...\n(now: {}, next open: {})".format(
-                    clock.timestamp.round('1s'), clock.next_open))
+            if clock.is_open == False:
+                bought_today = False
+                sold_today = False
+                if tick_count % 5 == 0:
+                    print("Waiting for market open ...\n(now: {}, next open: {})".format(
+                        clock.timestamp.round('1s'), clock.next_open))
         time.sleep(3)
         tick_count += 1
 
