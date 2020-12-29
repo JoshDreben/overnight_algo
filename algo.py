@@ -129,7 +129,7 @@ def run():
                     while clock.is_open:
                         time.sleep(5)
                         print('Waiting for market to close ...')
-                elif tick_count % 5 == 0:
+                elif tick_count % 40 == 0:
                     print('Waiting to buy...')
             else:
                 time_after_open = clock.timestamp - \
