@@ -144,7 +144,7 @@ def run():
                         )
                     print('Positions bought.')
                     bought_today = True
-                elif tick_count % 5 == 0:
+                elif tick_count % 40 == 0:
                     print('Waiting to buy...')
             else:
                 time_after_open = clock.timestamp - \
@@ -153,14 +153,14 @@ def run():
                 if time_after_open.seconds >= 120:
                     print('Liquidating positions.')
                     api.close_all_positions()
-                elif tick_count % 5 == 0:
+                elif tick_count % 40 == 0:
                     print('Waiting to sell ...')
                 sold_today = True
         else:
             if clock.is_open == False:
                 bought_today = False
                 sold_today = False
-                if tick_count % 5 == 0:
+                if tick_count % 40 == 0:
                     print("Waiting for market open ...\n(now: {}, next open: {})".format(
                         clock.timestamp.round('1s'), clock.next_open))
         time.sleep(3)
