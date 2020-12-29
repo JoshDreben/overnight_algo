@@ -104,30 +104,13 @@ def get_shares_to_buy(ratings_df, portfolio):
 
 def run():
     tick_count = 0
-    bought_today = False
-    sold_today = False
-
-    try:
-        orders = api.list_orders(
-            after=pd.Timestamp(datetime.today()-timedelta(days=1)).date(),
-            limit=max_stocks*2,
-            status='all'
-        )
-        for order in orders:
-            if order.side == 'buy' and order.status != 'canceled':
-                bought_today = True
-                sold_today = True
-                break
-            else:
-                sold_today = True
-    except:
-        pass
-
     while True:
         clock = api.get_clock()
+        positions = api.list_positions()
         max_stocks = float(api.get_account().cash) // stock_divisor
-        if clock.is_open and not bought_today:
-            if sold_today:
+        if clock.is_open:
+            if len(positions) == 0:
+                # Buy Time!
                 time_until_close = clock.next_close - clock.timestamp
                 if time_until_close.seconds <= 120:
                     print('Buying positions ...')
@@ -143,8 +126,10 @@ def run():
                             time_in_force='day'
                         )
                     print('Positions bought.')
-                    bought_today = True
-                elif tick_count % 40 == 0:
+                    while clock.is_open:
+                        time.sleep(5)
+                        print('Waiting for market to close ...')
+                elif tick_count % 5 == 0:
                     print('Waiting to buy...')
             else:
                 time_after_open = clock.timestamp - \
@@ -155,14 +140,10 @@ def run():
                     api.close_all_positions()
                 elif tick_count % 40 == 0:
                     print('Waiting to sell ...')
-                sold_today = True
         else:
-            if clock.is_open == False:
-                bought_today = False
-                sold_today = False
-                if tick_count % 40 == 0:
-                    print("Waiting for market open ...\n(now: {}, next open: {})".format(
-                        clock.timestamp.round('1s'), clock.next_open))
+            if tick_count % 40 == 0:
+                print("Waiting for market open ...\n(now: {}, next open: {})".format(
+                    clock.timestamp.round('1s'), clock.next_open))
         time.sleep(3)
         tick_count += 1
 
@@ -184,25 +165,3 @@ def log_shares(shares, ratings):
 
 if __name__ == '__main__':
     run()
-
-# uncomment to use sentiment
-# try:
-#     res = requests.get(
-#         config.FINNHUB_URL+'news-sentiment',
-#         params={'symbol': symbol},
-#         headers={'X-Finnhub-Token': config.FINNHUB_KEY}
-#     ).json()
-#     if res['sentiment'] is not None and res['sentiment']['bullishPercent'] < 0.5:
-#         continue
-# except:
-#     pass
-
-# test what algo would buy
-# ratings = get_all_ratings(float(api.get_account().cash) // stock_divisor)
-# shares = get_shares_to_buy(ratings, float(api.get_account().cash))
-# log_shares(shares, ratings)
-
-# check buy/sell times
-# clock = api.get_clock()
-# time_till_close = clock.next_close - clock.timestamp
-# time_since_open = clock.timestamp - (clock.next_open - timedelta(days=1))
