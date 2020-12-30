@@ -16,7 +16,7 @@ min_prcnt_chng = 0.035
 max_prcnt_chng = 0.15
 max_batch_size = 200
 time_window = 5
-max_rating_fraction = 0.15
+max_rating_fraction = 0.25
 
 
 def get_all_ratings(max_stocks):
@@ -132,7 +132,7 @@ def run():
                         clock = api.get_clock()
                         time.sleep(5)
                         print('Waiting for market to close ...')
-                elif tick_count % 400  == 0:
+                elif tick_count % 400 == 0:
                     print('Waiting to buy...')
             else:
                 time_after_open = clock.timestamp - \
@@ -163,8 +163,13 @@ def log_shares(shares, ratings):
         ))
         total_price += price*shares[share]
     print('${} to be spent from ${}'.format(
-        round(total_price, 2), int(api.get_account().cash)))
+        round(total_price, 2), float(api.get_account().cash)))
 
 
 if __name__ == '__main__':
+    # max_stocks = float(api.get_account().cash) // stock_divisor
+    # ratings = get_all_ratings(max_stocks)
+    # trim_outlier_ratings(ratings)
+    # shares = get_shares_to_buy(ratings, float(api.get_account().cash))
+    # log_shares(shares, ratings)
     run()
