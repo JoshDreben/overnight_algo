@@ -127,6 +127,7 @@ def run():
                         )
                     print('Positions bought.')
                     while clock.is_open:
+                        clock = api.get_clock()
                         time.sleep(5)
                         print('Waiting for market to close ...')
                 elif tick_count % 40 == 0:
