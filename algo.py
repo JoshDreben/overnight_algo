@@ -13,9 +13,10 @@ stock_divisor = 5
 max_stock_price = 13
 min_stock_price = 2
 min_prcnt_chng = 0.035
+max_prcnt_chng = 0.15
 max_batch_size = 200
 time_window = 5
-max_rating_fraction = 0.25
+max_rating_fraction = 0.15
 
 
 def get_all_ratings(max_stocks):
@@ -42,7 +43,8 @@ def get_all_ratings(max_stocks):
                 if (
                     latest_price <= max_stock_price and
                     latest_price >= min_stock_price and
-                    day_prcnt_chng >= min_prcnt_chng
+                    day_prcnt_chng >= min_prcnt_chng and
+                    day_prcnt_chng <= max_prcnt_chng
                 ):
 
                     price_change = latest_price - bars[0].c
@@ -126,10 +128,11 @@ def run():
                             time_in_force='day'
                         )
                     print('Positions bought.')
-                    while clock.is_open:
+                    while clock.is_open == True:
+                        clock = api.get_clock()
                         time.sleep(5)
                         print('Waiting for market to close ...')
-                elif tick_count % 5 == 0:
+                elif tick_count % 400  == 0:
                     print('Waiting to buy...')
             else:
                 time_after_open = clock.timestamp - \
@@ -138,10 +141,10 @@ def run():
                 if time_after_open.seconds >= 120:
                     print('Liquidating positions.')
                     api.close_all_positions()
-                elif tick_count % 40 == 0:
+                elif tick_count % 400 == 0:
                     print('Waiting to sell ...')
         else:
-            if tick_count % 40 == 0:
+            if tick_count % 1200 == 0:
                 print("Waiting for market open ...\n(now: {}, next open: {})".format(
                     clock.timestamp.round('1s'), clock.next_open))
         time.sleep(3)
