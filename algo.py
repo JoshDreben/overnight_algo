@@ -138,7 +138,7 @@ def run():
                 time_after_open = clock.timestamp - \
                     (clock.next_open-timedelta(days=1))
 
-                if time_after_open.seconds >= 120:
+                if time_after_open.seconds >= 3600:
                     print('Liquidating positions.')
                     api.close_all_positions()
                 elif tick_count % 400 == 0:
