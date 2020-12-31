@@ -4,19 +4,22 @@ import statistics
 import time
 import config
 import requests
+from ta.volatility import BollingerBands
 from datetime import datetime, timedelta
 from pytz import timezone
 
 api = tradeapi.REST(config.KEY_ID, config.SECRET_KEY, config.URL)
 
-stock_divisor = 5
-max_stock_price = 13
+stock_divisor = 12
+max_stock_price = 12
 min_stock_price = 2
-min_prcnt_chng = 0.035
-max_prcnt_chng = 0.15
+min_prcnt_chng = -0.10
+max_prcnt_chng = 0.0
 max_batch_size = 200
-time_window = 5
-max_rating_fraction = 0.25
+time_window = 3
+max_rating_fraction = 0.20
+
+stock_ratings = None
 
 
 def get_all_ratings(max_stocks):
@@ -117,8 +120,9 @@ def run():
                 if time_until_close.seconds <= 120:
                     print('Buying positions ...')
                     portfolio_cash = float(api.get_account().cash)
-                    ratings = get_all_ratings(max_stocks)
-                    shares_to_buy = get_shares_to_buy(ratings, portfolio_cash)
+                    stock_ratings = get_all_ratings(max_stocks)
+                    shares_to_buy = get_shares_to_buy(
+                        stock_ratings, portfolio_cash)
                     for symbol in shares_to_buy:
                         api.submit_order(
                             symbol=symbol,
@@ -167,9 +171,10 @@ def log_shares(shares, ratings):
 
 
 if __name__ == '__main__':
-    # max_stocks = float(api.get_account().cash) // stock_divisor
-    # ratings = get_all_ratings(max_stocks)
-    # trim_outlier_ratings(ratings)
-    # shares = get_shares_to_buy(ratings, float(api.get_account().cash))
-    # log_shares(shares, ratings)
-    run()
+    max_stocks = float(api.get_account().cash) // stock_divisor
+    ratings = get_all_ratings(max_stocks)
+    trim_outlier_ratings(ratings)
+    shares = get_shares_to_buy(ratings, float(api.get_account().cash))
+    log_shares(shares, ratings)
+    # print(api.get_account())
+    # run()
