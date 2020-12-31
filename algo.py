@@ -171,10 +171,10 @@ def log_shares(shares, ratings):
 
 
 if __name__ == '__main__':
-    max_stocks = float(api.get_account().cash) // stock_divisor
-    ratings = get_all_ratings(max_stocks)
-    trim_outlier_ratings(ratings)
-    shares = get_shares_to_buy(ratings, float(api.get_account().cash))
-    log_shares(shares, ratings)
+    # max_stocks = float(api.get_account().cash) // stock_divisor
+    # ratings = get_all_ratings(max_stocks)
+    # trim_outlier_ratings(ratings)
+    # shares = get_shares_to_buy(ratings, float(api.get_account().cash))
+    # log_shares(shares, ratings)
     # print(api.get_account())
-    # run()
+    run()
