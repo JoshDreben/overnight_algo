@@ -1,25 +1,23 @@
 import alpaca_trade_api as tradeapi
 import pandas as pd
+import numpy as np
 import statistics
 import time
 import config
 import requests
 from ta.volatility import BollingerBands
+from ta.trend import MACD
 from datetime import datetime, timedelta
 from pytz import timezone
 
 api = tradeapi.REST(config.KEY_ID, config.SECRET_KEY, config.URL)
 
-stock_divisor = 12
+stock_divisor = 10
 max_stock_price = 12
 min_stock_price = 2
-min_prcnt_chng = -0.10
-max_prcnt_chng = 0.0
 max_batch_size = 200
-time_window = 3
-max_rating_fraction = 0.20
-
-stock_ratings = None
+time_window = 30
+# max_rating_fraction = 0.01
 
 
 def get_all_ratings(max_stocks):
@@ -40,24 +38,29 @@ def get_all_ratings(max_stocks):
         for symbol in symbol_batch:
             bars = bar_data[symbol]
             if len(bars) == time_window:
-                latest_time = bars[-1].t.to_pydatetime().astimezone(timezone('EST'))
                 latest_price = bars[-1].c
                 day_prcnt_chng = bars[-1].c/bars[-2].c - 1
                 if (
                     latest_price <= max_stock_price and
                     latest_price >= min_stock_price and
-                    day_prcnt_chng >= min_prcnt_chng and
-                    day_prcnt_chng <= max_prcnt_chng
+                    day_prcnt_chng <= -0.035
                 ):
-
-                    price_change = latest_price - bars[0].c
-                    past_volumes = [bar.v for bar in bars[:-1]]
-                    volume_stdev = statistics.stdev(past_volumes)
-                    if volume_stdev == 0:
-                        continue
-                    volume_change = bars[-1].v - bars[-2].v
-                    rating = (volume_change / volume_stdev) * \
-                        (price_change / bars[0].c)
+                    c_prices = np.array([bar.c for bar in bars])
+                    c_prices_s = pd.Series(c_prices)
+                    macd_obj = MACD(
+                        close=c_prices_s,
+                        window_fast=12,
+                        window_slow=26,
+                        window_sign=9
+                    )
+                    macd_vals = macd_obj.macd().values[25:]
+                    trend_up = macd_vals[-1] >= macd_vals[-2] >= macd_vals[-3] >= macd_vals[-4] >= macd_vals[-5] > 0
+                    macd_chng = macd_vals[-1] - macd_vals[-2]
+                    rating = -1
+                    if trend_up:
+                        macd_stdev = statistics.stdev(macd_vals)
+                        rating = (macd_chng / macd_stdev) * \
+                            ((-1 * day_prcnt_chng)+1)
                     if rating > 0:
                         ratings = ratings.append({
                             'symbol': symbol,
@@ -67,31 +70,28 @@ def get_all_ratings(max_stocks):
         index += max_batch_size
     ratings = ratings.sort_values('rating', ascending=False)
     ratings = ratings.reset_index(drop=True)
-    ratings = ratings[:int(max_stocks)]
     print('Found {} stocks, with total rating: {}'.format(
         ratings.shape[0], ratings['rating'].sum()))
-    trim_outlier_ratings(ratings_df=ratings)
     return ratings
 
-
-def trim_outlier_ratings(ratings_df):
-    total_rating = ratings_df['rating'].sum()
-    trimmed_ratings = pd.DataFrame(columns=['symbol', 'rating', 'price'])
-    max_rating = ratings_df['rating'].max()
-    new_max_rating = total_rating * max_rating_fraction
-    if max_rating > total_rating * 0.5:
-        print('Outlier found! Trimming...')
-        ratings_df.loc[ratings_df['rating'] ==
-                       max_rating, 'rating'] = new_max_rating
-        points_to_add = (max_rating - new_max_rating) / ratings_df.shape[0]
-        print('Distributing {} points to each stock'.format(points_to_add))
-        for i, row in ratings_df.iterrows():
-            if row['rating'] != new_max_rating:
-                ratings_df.loc[ratings_df['rating'] ==
-                               row['rating'], 'rating'] += points_to_add
-        print('New total rating: {}'.format(ratings_df['rating'].sum()))
-    else:
-        print('No outliers found!')
+# DEPRECATED -- NEEDS MASSIVE CHANGE TO WORK
+# def trim_outlier_ratings(ratings_df):
+#     total_rating = ratings_df['rating'].sum()
+#     max_rating = ratings_df['rating'].max()
+#     new_max_rating = total_rating * max_rating_fraction
+#     if max_rating > new_max_rating:
+#         print('Outlier found! Trimming...')
+#         ratings_df.loc[ratings_df['rating'] ==
+#                        max_rating, 'rating'] = new_max_rating
+#         points_to_add = (max_rating - new_max_rating) / ratings_df.shape[0]
+#         print('Distributing {} points to each stock'.format(points_to_add))
+#         for i, row in ratings_df.iterrows():
+#             if row['rating'] != new_max_rating:
+#                 ratings_df.loc[ratings_df['rating'] ==
+#                                row['rating'], 'rating'] += points_to_add
+#         print('New total rating: {}'.format(ratings_df['rating'].sum()))
+#     else:
+#         print('No outliers found!')
 
 
 def get_shares_to_buy(ratings_df, portfolio):
@@ -115,7 +115,6 @@ def run():
         max_stocks = float(api.get_account().cash) // stock_divisor
         if clock.is_open:
             if len(positions) == 0:
-                # Buy Time!
                 time_until_close = clock.next_close - clock.timestamp
                 if time_until_close.seconds <= 120:
                     print('Buying positions ...')
@@ -171,10 +170,9 @@ def log_shares(shares, ratings):
 
 
 if __name__ == '__main__':
-    # max_stocks = float(api.get_account().cash) // stock_divisor
-    # ratings = get_all_ratings(max_stocks)
-    # trim_outlier_ratings(ratings)
-    # shares = get_shares_to_buy(ratings, float(api.get_account().cash))
-    # log_shares(shares, ratings)
+    max_stocks = float(api.get_account().cash) // stock_divisor
+    ratings = get_all_ratings(max_stocks)
+    shares = get_shares_to_buy(ratings, float(api.get_account().cash))
+    log_shares(shares, ratings)
     # print(api.get_account())
-    run()
+    # run()
