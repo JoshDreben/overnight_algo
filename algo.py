@@ -109,7 +109,12 @@ def get_shares_to_buy(ratings_df, portfolio):
 def run():
     tick_count = 0
     while True:
-        clock = api.get_clock()
+        try:
+            clock = api.get_clock()
+        except:
+            print('rate limit hit! sleeping for 30 seconds ...')
+            time.sleep(30)
+            continue
         positions = api.list_positions()
         max_stocks = float(api.get_account().cash) // stock_divisor
         if clock.is_open:
@@ -149,7 +154,7 @@ def run():
             if tick_count % 1200 == 0:
                 print("Waiting for market open ...\n(now: {}, next open: {})".format(
                     clock.timestamp.round('1s'), clock.next_open))
-        time.sleep(3)
+        time.sleep(5)
         tick_count += 1
 
 
