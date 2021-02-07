@@ -73,25 +73,6 @@ def get_all_ratings(max_stocks):
         ratings.shape[0], ratings['rating'].sum()))
     return ratings
 
-# DEPRECATED -- NEEDS MASSIVE CHANGE TO WORK
-# def trim_outlier_ratings(ratings_df):
-#     total_rating = ratings_df['rating'].sum()
-#     max_rating = ratings_df['rating'].max()
-#     new_max_rating = total_rating * max_rating_fraction
-#     if max_rating > new_max_rating:
-#         print('Outlier found! Trimming...')
-#         ratings_df.loc[ratings_df['rating'] ==
-#                        max_rating, 'rating'] = new_max_rating
-#         points_to_add = (max_rating - new_max_rating) / ratings_df.shape[0]
-#         print('Distributing {} points to each stock'.format(points_to_add))
-#         for i, row in ratings_df.iterrows():
-#             if row['rating'] != new_max_rating:
-#                 ratings_df.loc[ratings_df['rating'] ==
-#                                row['rating'], 'rating'] += points_to_add
-#         print('New total rating: {}'.format(ratings_df['rating'].sum()))
-#     else:
-#         print('No outliers found!')
-
 
 def get_shares_to_buy(ratings_df, portfolio):
     print('Calculating shares to buy...')
@@ -109,42 +90,37 @@ def get_shares_to_buy(ratings_df, portfolio):
 def run():
     tick_count = 0
     while True:
-        clock = api.get_clock()
+        try:
+            clock = api.get_clock()
+        except:
+            print('rate limit hit! sleeping for 30 seconds ...')
+            time.sleep(30)
+        continue
         positions = api.list_positions()
         max_stocks = float(api.get_account().cash) // stock_divisor
         if clock.is_open:
-            if len(positions) == 0:
-                time_until_close = clock.next_close - clock.timestamp
-                if time_until_close.seconds <= 120:
-                    print('Buying positions ...')
-                    portfolio_cash = float(api.get_account().cash)
-                    stock_ratings = get_all_ratings(max_stocks)
-                    shares_to_buy = get_shares_to_buy(
-                        stock_ratings, portfolio_cash)
-                    for symbol in shares_to_buy:
-                        api.submit_order(
-                            symbol=symbol,
-                            qty=shares_to_buy[symbol],
-                            side='buy',
-                            type='market',
-                            time_in_force='day'
-                        )
-                    print('Positions bought.')
-                    while clock.is_open == True:
-                        clock = api.get_clock()
-                        time.sleep(5)
-                        print('Waiting for market to close ...')
-                elif tick_count % 400 == 0:
-                    print('Waiting to buy...')
-            else:
-                time_after_open = clock.timestamp - \
-                    (clock.next_open-timedelta(days=1))
-
-                if time_after_open.seconds >= 3600:
-                    print('Liquidating positions.')
-                    api.close_all_positions()
-                elif tick_count % 400 == 0:
-                    print('Waiting to sell ...')
+            time_until_close = clock.next_close - clock.timestamp
+            if time_until_close.seconds <= 120:
+                print('Buying positions ...')
+                portfolio_cash = float(api.get_account().cash)
+                stock_ratings = get_all_ratings(max_stocks)
+                shares_to_buy = get_shares_to_buy(
+                    stock_ratings, portfolio_cash)
+                for symbol in shares_to_buy:
+                    api.submit_order(
+                        symbol=symbol,
+                        qty=shares_to_buy[symbol],
+                        side='buy',
+                        type='market',
+                        time_in_force='day'
+                    )
+                print('Positions bought.')
+                while clock.is_open == True:
+                    clock = api.get_clock()
+                    time.sleep(5)
+                    print('Waiting for market to close ...')
+            elif tick_count % 400 == 0:
+                print('Waiting to buy...')
         else:
             if tick_count % 1200 == 0:
                 print("Waiting for market open ...\n(now: {}, next open: {})".format(
