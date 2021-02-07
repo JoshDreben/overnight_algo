@@ -95,7 +95,7 @@ def run():
         except:
             print('rate limit hit! sleeping for 30 seconds ...')
             time.sleep(30)
-        continue
+            continue
         positions = api.list_positions()
         max_stocks = float(api.get_account().cash) // stock_divisor
         if clock.is_open:
@@ -125,7 +125,7 @@ def run():
             if tick_count % 1200 == 0:
                 print("Waiting for market open ...\n(now: {}, next open: {})".format(
                     clock.timestamp.round('1s'), clock.next_open))
-        time.sleep(3)
+        time.sleep(5)
         tick_count += 1
 
 
