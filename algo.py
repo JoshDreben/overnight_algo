@@ -11,7 +11,7 @@ from pytz import timezone
 
 api = tradeapi.REST(config.KEY_ID, config.SECRET_KEY, config.URL)
 
-max_stock_price = 4
+max_stock_price = 2.50
 min_stock_price = 0
 max_batch_size = 200
 time_window = 30
