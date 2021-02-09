@@ -11,15 +11,14 @@ from pytz import timezone
 
 api = tradeapi.REST(config.KEY_ID, config.SECRET_KEY, config.URL)
 
-stock_divisor = 10
-max_stock_price = 12
-min_stock_price = 2
+max_stock_price = 4
+min_stock_price = 0
 max_batch_size = 200
 time_window = 30
 # max_rating_fraction = 0.01
 
 
-def get_all_ratings(max_stocks):
+def get_all_ratings():
     print('Filtering assets and calculating ratings...')
     assets = api.list_assets()
     assets = [asset for asset in assets if asset.tradable]
@@ -69,6 +68,7 @@ def get_all_ratings(max_stocks):
         index += max_batch_size
     ratings = ratings.sort_values('rating', ascending=False)
     ratings = ratings.reset_index(drop=True)
+    ratings = ratings[:5]
     print('Found {} stocks, with total rating: {}'.format(
         ratings.shape[0], ratings['rating'].sum()))
     return ratings
@@ -97,13 +97,12 @@ def run():
             time.sleep(30)
             continue
         positions = api.list_positions()
-        max_stocks = float(api.get_account().cash) // stock_divisor
         if clock.is_open:
             time_until_close = clock.next_close - clock.timestamp
             if time_until_close.seconds <= 120:
                 print('Buying positions ...')
                 portfolio_cash = float(api.get_account().cash)
-                stock_ratings = get_all_ratings(max_stocks)
+                stock_ratings = get_all_ratings()
                 shares_to_buy = get_shares_to_buy(
                     stock_ratings, portfolio_cash)
                 for symbol in shares_to_buy:
@@ -145,4 +144,4 @@ def log_shares(shares, ratings):
 
 
 if __name__ == '__main__':
-    run()
+    # run()
