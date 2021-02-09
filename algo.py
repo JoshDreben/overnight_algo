@@ -99,7 +99,7 @@ def run():
         positions = api.list_positions()
         if clock.is_open:
             time_until_close = clock.next_close - clock.timestamp
-            if time_until_close.seconds <= 120:
+            if time_until_close.seconds <= 120 and len(positions) == 0:
                 print('Buying positions ...')
                 portfolio_cash = float(api.get_account().cash)
                 stock_ratings = get_all_ratings()
@@ -144,4 +144,4 @@ def log_shares(shares, ratings):
 
 
 if __name__ == '__main__':
-    # run()
+    run()
