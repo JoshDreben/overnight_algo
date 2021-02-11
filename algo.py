@@ -11,7 +11,7 @@ from pytz import timezone
 
 api = tradeapi.REST(config.KEY_ID, config.SECRET_KEY, config.URL)
 
-max_stock_price = 2.50
+max_stock_price = 4.00
 min_stock_price = 0
 max_batch_size = 200
 time_window = 30
@@ -41,7 +41,7 @@ def get_all_ratings():
                 if (
                     latest_price <= max_stock_price and
                     latest_price >= min_stock_price and
-                    day_prcnt_chng <= -0.035
+                    day_prcnt_chng <= -0.025
                 ):
                     c_prices = np.array([bar.c for bar in bars])
                     c_prices_s = pd.Series(c_prices)
@@ -58,7 +58,7 @@ def get_all_ratings():
                     if trend_up:
                         macd_stdev = statistics.stdev(macd_vals)
                         rating = (macd_chng / macd_stdev) * \
-                            ((-1 * day_prcnt_chng)+1)
+                            ((-1*day_prcnt_chng)+1)
                     if rating > 0:
                         ratings = ratings.append({
                             'symbol': symbol,
